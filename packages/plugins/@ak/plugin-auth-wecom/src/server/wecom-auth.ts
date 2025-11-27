@@ -136,10 +136,11 @@ export class WeComAuth extends BaseAuth {
     // Prepare user values (Requirements 3.2, 3.3)
     const userValues: any = {
       nickname: name || userid, // Use name from WeCom, fallback to userid (Requirement 3.3)
+      username: name || userid, // Also set username for better user experience
       wecomUserId: userid, // Use WeCom user ID as unique identifier (Requirement 3.2)
     };
 
-    // Add optional fields if available
+    // Add optional fields if available (though WeCom may not return these due to privacy restrictions)
     if (email) {
       userValues.email = email;
     }

@@ -19,69 +19,33 @@ import crypto from 'crypto';
  * Requirements: 2.2, 3.1, 4.1, 4.2, 4.3, 5.1, 5.2
  */
 export async function callback(ctx: Context, next: Next) {
-  // Comprehensive logging of all possible parameter sources
-  ctx.logger.info('WeCom callback - full context dump', {
-    action: 'callback',
-    method: ctx.method,
-    url: ctx.url,
-    originalUrl: ctx.originalUrl,
-    path: ctx.path,
-    querystring: ctx.querystring,
-    search: ctx.search,
-    // Query parameters
-    'ctx.query': ctx.query,
-    'ctx.request.query': ctx.request?.query,
-    // Action parameters
-    'ctx.action.params': ctx.action?.params,
-    'ctx.action.params.values': ctx.action?.params?.values,
-    // Request body
-    'ctx.request.body': ctx.request?.body,
-    // Headers
-    'content-type': ctx.get('content-type'),
-  });
-
-  // Try to get parameters from all possible sources
-  // Priority: action params > request query > ctx.query > parsed from URL
+  // Extract parameters from query string (GET request)
+  // Try multiple sources for compatibility
   let code: string | undefined;
   let state: string | undefined;
   let authenticator: string | undefined;
 
-  // Method 1: From action params (POST body or processed params)
-  if (ctx.action?.params?.values) {
-    code = ctx.action.params.values.code;
-    state = ctx.action.params.values.state;
-    authenticator = ctx.action.params.values.authenticator;
-  }
-
-  // Method 2: From ctx.query (Koa standard)
-  if (!code && ctx.query) {
+  // Method 1: From ctx.query (Koa standard)
+  if (ctx.query) {
     code = ctx.query.code as string;
     state = ctx.query.state as string;
     authenticator = ctx.query.authenticator as string;
   }
 
-  // Method 3: From ctx.request.query
+  // Method 2: From ctx.request.query (fallback)
   if (!code && ctx.request?.query) {
     code = ctx.request.query.code as string;
     state = ctx.request.query.state as string;
     authenticator = ctx.request.query.authenticator as string;
   }
 
-  // Method 4: Parse from querystring manually
+  // Method 3: Parse from querystring manually (last resort)
   if (!code && ctx.querystring) {
     const urlParams = new URLSearchParams(ctx.querystring);
     code = urlParams.get('code') || undefined;
     state = urlParams.get('state') || undefined;
     authenticator = urlParams.get('authenticator') || undefined;
   }
-
-  ctx.logger.info('WeCom callback - extracted parameters', {
-    action: 'callback',
-    code: code ? `${code.substring(0, 10)}...` : undefined,
-    state: state ? `${state.substring(0, 10)}...` : undefined,
-    authenticator,
-    extractionMethod: code ? 'success' : 'failed',
-  });
 
   // Validate required parameters (Requirement 5.2)
   if (!code) {
@@ -214,10 +178,7 @@ export async function callback(ctx: Context, next: Next) {
 
     ctx.logger.info('Redirecting after successful authentication', {
       action: 'callback',
-      redirectUrl,
-      protocol,
-      host,
-      port,
+      userId: user.id,
     });
 
     ctx.redirect(redirectUrl);
@@ -283,12 +244,6 @@ export async function getAuthUrl(ctx: Context, next: Next) {
     // Convert relative callback URL to absolute URL
     let callbackUrl = options.callbackUrl;
 
-    // Log original callback URL from config
-    ctx.logger.info('Original callback URL from config', {
-      action: 'getAuthUrl',
-      originalCallbackUrl: callbackUrl,
-    });
-
     if (callbackUrl && !callbackUrl.startsWith('http://') && !callbackUrl.startsWith('https://')) {
       // Build absolute URL from request
       // Prefer X-Forwarded-* headers if behind a proxy
@@ -331,27 +286,8 @@ export async function getAuthUrl(ctx: Context, next: Next) {
         }
       }
 
-      // Log request details
-      ctx.logger.info('Request details for URL construction', {
-        action: 'getAuthUrl',
-        protocol,
-        host,
-        publicPort: options.publicPort,
-        xForwardedProto,
-        xForwardedHost,
-        xForwardedPort,
-        originalHost: ctx.get('host'),
-        originalProtocol: ctx.protocol,
-      });
-
       callbackUrl = `${protocol}://${host}${callbackUrl.startsWith('/') ? '' : '/'}${callbackUrl}`;
     }
-
-    // Log final callback URL
-    ctx.logger.info('Final callback URL', {
-      action: 'getAuthUrl',
-      finalCallbackUrl: callbackUrl,
-    });
 
     // Get the authorization URL (Requirement 2.2)
     const authUrl = (wecomAuth as any).wecomService.getAuthorizationUrl(callbackUrl, state);
@@ -360,8 +296,6 @@ export async function getAuthUrl(ctx: Context, next: Next) {
     ctx.logger.info('Generated WeCom auth URL', {
       action: 'getAuthUrl',
       authenticator: authenticatorName,
-      authUrl,
-      state,
     });
 
     ctx.body = {

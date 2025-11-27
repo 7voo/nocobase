@@ -142,15 +142,6 @@ export class WeComService {
           timeout: API_TIMEOUT.REQUEST_TIMEOUT,
         });
 
-        // Log the full response for debugging
-        if (this.logger) {
-          this.logger.info('WeCom getUserInfo API response', {
-            method: 'getUserInfo',
-            responseData: response.data,
-            allKeys: Object.keys(response.data),
-          });
-        }
-
         // Validate response format (Requirement 6.4)
         if (response.data.errcode !== 0) {
           if (this.logger) {
@@ -158,21 +149,9 @@ export class WeComService {
               method: 'getUserInfo',
               errcode: response.data.errcode,
               errmsg: response.data.errmsg,
-              fullResponse: response.data,
             });
           }
           throw new Error(`WeCom API error: ${response.data.errmsg} (code: ${response.data.errcode})`);
-        }
-
-        // Log what fields are present
-        if (this.logger) {
-          this.logger.info('WeCom response field analysis', {
-            method: 'getUserInfo',
-            hasUserid: !!response.data.userid,
-            hasOpenid: !!(response.data as any).openid,
-            hasUserId: !!(response.data as any).UserId,
-            allKeys: Object.keys(response.data),
-          });
         }
 
         // PC QR code login returns "UserId" (capital U and I)
@@ -184,30 +163,65 @@ export class WeComService {
           if (this.logger) {
             this.logger.error('User ID not found in WeCom response', {
               method: 'getUserInfo',
-              fullResponse: response.data,
             });
           }
           throw new Error('User ID not found in response');
         }
 
-        if (this.logger) {
-          this.logger.info('Successfully extracted user ID', {
-            method: 'getUserInfo',
-            userId,
-          });
+        // For PC QR code login, we only get UserId
+        // Need to fetch detailed user info with another API call
+        let detailedInfo: any = {};
+
+        if (!response.data.name && !response.data.mobile && !response.data.email) {
+          // No detailed info in the response, fetch it separately
+          try {
+            const detailUrl = `${WECOM_API.BASE_URL}${WECOM_API.GET_USER_DETAIL}`;
+            const detailParams = new URLSearchParams({
+              access_token: accessToken,
+              userid: userId,
+            });
+
+            const detailResponse = await axios.get(detailUrl, {
+              params: detailParams,
+              timeout: API_TIMEOUT.REQUEST_TIMEOUT,
+            });
+
+            if (detailResponse.data.errcode === 0) {
+              detailedInfo = detailResponse.data;
+
+              if (this.logger) {
+                this.logger.info('Fetched detailed user info', {
+                  method: 'getUserInfo',
+                  userId,
+                  hasName: !!detailedInfo.name,
+                  hasMobile: !!detailedInfo.mobile,
+                  hasEmail: !!detailedInfo.email,
+                });
+              }
+            }
+          } catch (error) {
+            // Log but don't fail if we can't get detailed info
+            if (this.logger) {
+              this.logger.warn('Failed to fetch detailed user info', {
+                method: 'getUserInfo',
+                userId,
+                error: error.message,
+              });
+            }
+          }
         }
 
         // Map API response to WeComUserInfo
         const userInfo: WeComUserInfo = {
           userid: userId,
-          name: response.data.name || userId, // Fallback to userid if name not available
-          mobile: response.data.mobile,
-          email: response.data.email,
-          avatar: response.data.avatar,
-          department: response.data.department,
-          position: response.data.position,
-          gender: response.data.gender,
-          status: response.data.status,
+          name: response.data.name || detailedInfo.name || userId,
+          mobile: response.data.mobile || detailedInfo.mobile,
+          email: response.data.email || detailedInfo.email,
+          avatar: response.data.avatar || detailedInfo.avatar,
+          department: response.data.department || detailedInfo.department,
+          position: response.data.position || detailedInfo.position,
+          gender: response.data.gender || detailedInfo.gender,
+          status: response.data.status || detailedInfo.status,
         };
 
         return userInfo;
