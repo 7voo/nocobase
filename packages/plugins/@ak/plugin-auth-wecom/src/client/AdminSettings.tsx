@@ -29,9 +29,7 @@ export const AdminSettings: React.FC = () => {
   const callbackUrl = useMemo(() => {
     const apiUrl = apiClient.axios.defaults.baseURL || window.location.origin;
     const cleanUrl = apiUrl.replace(/\/$/, ''); // Remove trailing slash
-    return `${cleanUrl}/auth:signIn?authenticator=${
-      record.name || authType.toLowerCase()
-    }&type=${authType.toLowerCase()}`;
+    return `${cleanUrl}/wecom:callback?authenticator=${record.name || authType.toLowerCase()}`;
   }, [apiClient, record.name]);
 
   const handleCopy = () => {
@@ -114,8 +112,12 @@ export const AdminSettings: React.FC = () => {
             type: 'string',
             title: t('Callback URL'),
             'x-decorator': 'FormItem',
-            'x-component': 'CallbackUrlField',
+            'x-component': 'Input',
+            'x-component-props': {
+              readOnly: true,
+            },
             default: callbackUrl,
+            description: t('This URL is automatically generated. Copy it to your WeCom application settings.'),
           },
           publicPort: {
             type: 'number',

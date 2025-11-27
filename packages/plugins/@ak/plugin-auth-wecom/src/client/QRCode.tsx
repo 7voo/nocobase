@@ -103,7 +103,8 @@ export const QRCode: React.FC<QRCodeProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [api, authenticator, expirationTime, onError, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api, authenticator, expirationTime]);
 
   /**
    * Handle refresh button click
@@ -118,7 +119,52 @@ export const QRCode: React.FC<QRCodeProps> = ({
    */
   useEffect(() => {
     fetchAuthUrl();
-  }, [fetchAuthUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * Listen for postMessage from WeCom iframe
+   * When user confirms login, WeCom sends a message with the redirect URL
+   * This must be at the top level, before any conditional returns
+   */
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Verify the message is from WeCom
+      if (event.origin !== 'https://open.work.weixin.qq.com') {
+        return;
+      }
+
+      // WeCom sends the redirect URL in the message
+      if (event.data && typeof event.data === 'string') {
+        try {
+          // The message might be a URL or JSON string
+          let redirectUrl: string;
+
+          if (event.data.startsWith('http')) {
+            redirectUrl = event.data;
+          } else {
+            // Try parsing as JSON
+            const data = JSON.parse(event.data);
+            redirectUrl = data.redirect_uri || data.redirectUrl || data.url;
+          }
+
+          if (redirectUrl) {
+            // Redirect to the callback URL
+            window.location.href = redirectUrl;
+          }
+        } catch (err) {
+          // If parsing fails, log and ignore
+          console.debug('WeCom postMessage:', event.data);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
 
   /**
    * Render loading state
@@ -178,7 +224,7 @@ export const QRCode: React.FC<QRCodeProps> = ({
               border: 'none',
               borderRadius: '8px',
             }}
-            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
             title={t('WeCom QR Code')}
           />
         </div>

@@ -42,6 +42,7 @@ export class WeComService {
       agentid: this.config.agentId,
       redirect_uri: redirectUri,
       state: state,
+      self_redirect: 'false', // Use postMessage instead of direct redirect to avoid iframe cross-origin issues
     });
 
     return `${WECOM_API.OAUTH_AUTHORIZE}?${params.toString()}`;

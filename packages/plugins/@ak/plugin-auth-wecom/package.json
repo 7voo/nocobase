@@ -4,7 +4,7 @@
   "displayName.zh-CN": "认证：企业微信",
   "description": "WeCom (Enterprise WeChat) authentication.",
   "description.zh-CN": "通过企业微信扫码认证身份。",
-  "version": "0.1.10",
+  "version": "0.1.17",
   "main": "dist/server/index.js",
   "license": "AGPL-3.0",
   "dependencies": {},

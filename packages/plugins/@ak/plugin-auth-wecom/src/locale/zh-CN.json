@@ -47,5 +47,6 @@
   "Role to assign to newly created users (optional)": "分配给新创建用户的角色（可选）",
   "Public Port": "公网端口",
   "e.g., 7737": "例如：7737",
-  "Set this if your application is accessed via a non-standard port (e.g., 7737) but runs behind a reverse proxy on a different port. Leave empty for automatic detection.": "如果您的应用通过非标准端口（如 7737）访问，但在反向代理后运行在不同端口上，请设置此项。留空则自动检测。"
+  "Set this if your application is accessed via a non-standard port (e.g., 7737) but runs behind a reverse proxy on a different port. Leave empty for automatic detection.": "如果您的应用通过非标准端口（如 7737）访问，但在反向代理后运行在不同端口上，请设置此项。留空则自动检测。",
+  "This URL is automatically generated. Copy it to your WeCom application settings.": "此 URL 自动生成。请复制到您的企业微信应用设置中。"
 }

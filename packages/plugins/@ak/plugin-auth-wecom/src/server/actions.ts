@@ -88,18 +88,20 @@ export async function callback(ctx: Context, next: Next) {
       userId: user.id,
     });
 
-    // Return token and user info
-    ctx.body = {
-      data: {
-        token,
-        user: {
-          id: user.id,
-          nickname: user.nickname,
-          email: user.email,
-          phone: user.phone,
-        },
-      },
-    };
+    // Get redirect URL from query parameters or use default
+    const redirect = ctx.action.params.values?.redirect || '/admin';
+
+    // Redirect to frontend with token
+    const protocol = ctx.get('x-forwarded-proto') || ctx.protocol;
+    const host = ctx.get('x-forwarded-host') || ctx.get('host');
+    const redirectUrl = `${protocol}://${host}${redirect}?token=${token}`;
+
+    ctx.logger.info('Redirecting after successful authentication', {
+      action: 'callback',
+      redirectUrl,
+    });
+
+    ctx.redirect(redirectUrl);
 
     await next();
   } catch (error) {
