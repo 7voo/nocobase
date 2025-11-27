@@ -116,7 +116,14 @@ export const AdminSettings: React.FC = () => {
             'x-component-props': {
               readOnly: true,
             },
-            default: callbackUrl,
+            'x-reactions': {
+              target: 'callbackUrl',
+              fulfill: {
+                state: {
+                  value: callbackUrl,
+                },
+              },
+            },
             description: t('This URL is automatically generated. Copy it to your WeCom application settings.'),
           },
           publicPort: {

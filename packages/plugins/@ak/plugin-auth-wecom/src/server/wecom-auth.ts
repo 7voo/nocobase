@@ -31,11 +31,14 @@ export class WeComAuth extends BaseAuth {
 
     // Initialize WeCom service with configuration
     const options = this.authenticator.options as WeComAuthenticatorOptions;
-    this.wecomService = new WeComService({
-      corpId: options.corpId,
-      agentId: options.agentId,
-      secret: options.secret,
-    });
+    this.wecomService = new WeComService(
+      {
+        corpId: options.corpId,
+        agentId: options.agentId,
+        secret: options.secret,
+      },
+      ctx.logger,
+    );
   }
 
   /**

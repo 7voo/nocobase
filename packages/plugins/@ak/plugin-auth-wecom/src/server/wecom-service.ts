@@ -20,9 +20,11 @@ import { WECOM_API, RETRY_CONFIG, API_TIMEOUT } from '../constants';
 export class WeComService {
   private config: WeComConfig;
   private accessTokenCache: { token: string; expiresAt: number } | null = null;
+  private logger?: any;
 
-  constructor(config: WeComConfig) {
+  constructor(config: WeComConfig, logger?: any) {
     this.config = config;
+    this.logger = logger;
   }
 
   /**
@@ -140,19 +142,65 @@ export class WeComService {
           timeout: API_TIMEOUT.REQUEST_TIMEOUT,
         });
 
+        // Log the full response for debugging
+        if (this.logger) {
+          this.logger.info('WeCom getUserInfo API response', {
+            method: 'getUserInfo',
+            responseData: response.data,
+            allKeys: Object.keys(response.data),
+          });
+        }
+
         // Validate response format (Requirement 6.4)
         if (response.data.errcode !== 0) {
+          if (this.logger) {
+            this.logger.error('WeCom API error', {
+              method: 'getUserInfo',
+              errcode: response.data.errcode,
+              errmsg: response.data.errmsg,
+              fullResponse: response.data,
+            });
+          }
           throw new Error(`WeCom API error: ${response.data.errmsg} (code: ${response.data.errcode})`);
         }
 
-        if (!response.data.userid) {
+        // Log what fields are present
+        if (this.logger) {
+          this.logger.info('WeCom response field analysis', {
+            method: 'getUserInfo',
+            hasUserid: !!response.data.userid,
+            hasOpenid: !!(response.data as any).openid,
+            hasUserId: !!(response.data as any).UserId,
+            allKeys: Object.keys(response.data),
+          });
+        }
+
+        // PC QR code login returns "UserId" (capital U and I)
+        // Mobile OAuth returns "userid" (lowercase)
+        // We need to support both formats
+        const userId = response.data.userid || (response.data as any).UserId;
+
+        if (!userId) {
+          if (this.logger) {
+            this.logger.error('User ID not found in WeCom response', {
+              method: 'getUserInfo',
+              fullResponse: response.data,
+            });
+          }
           throw new Error('User ID not found in response');
+        }
+
+        if (this.logger) {
+          this.logger.info('Successfully extracted user ID', {
+            method: 'getUserInfo',
+            userId,
+          });
         }
 
         // Map API response to WeComUserInfo
         const userInfo: WeComUserInfo = {
-          userid: response.data.userid,
-          name: response.data.name || response.data.userid, // Fallback to userid if name not available
+          userid: userId,
+          name: response.data.name || userId, // Fallback to userid if name not available
           mobile: response.data.mobile,
           email: response.data.email,
           avatar: response.data.avatar,
