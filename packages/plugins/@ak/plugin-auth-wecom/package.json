@@ -1,10 +1,10 @@
 {
-  "name": "@my-nocobase/plugin-auth-wecom",
+  "name": "@ak/plugin-auth-wecom",
   "displayName": "Auth: WeCom",
   "displayName.zh-CN": "认证：企业微信",
   "description": "WeCom (Enterprise WeChat) authentication.",
   "description.zh-CN": "通过企业微信扫码认证身份。",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "main": "dist/server/index.js",
   "license": "AGPL-3.0",
   "dependencies": {},
