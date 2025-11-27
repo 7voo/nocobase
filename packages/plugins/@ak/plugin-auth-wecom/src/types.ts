@@ -40,6 +40,17 @@ export interface WeComAuthenticatorOptions {
    * OAuth callback URL
    */
   callbackUrl: string;
+  /**
+   * Public port number (optional)
+   *
+   * Use this when your application is behind a reverse proxy with port mapping.
+   * For example, if users access your site via https://example.com:7737
+   * but the reverse proxy forwards to port 443 internally, set this to 7737.
+   *
+   * If not set, the port will be automatically detected from the request.
+   * Standard ports (80 for HTTP, 443 for HTTPS) will be omitted from URLs.
+   */
+  publicPort?: number;
 }
 
 /**

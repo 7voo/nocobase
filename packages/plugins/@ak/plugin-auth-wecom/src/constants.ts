@@ -41,9 +41,9 @@ export const WECOM_API = {
    */
   GET_USER_DETAIL: '/cgi-bin/user/get',
   /**
-   * OAuth authorization endpoint
+   * OAuth authorization endpoint for PC QR code login
    */
-  OAUTH_AUTHORIZE: 'https://open.weixin.qq.com/connect/oauth2/authorize',
+  OAUTH_AUTHORIZE: 'https://open.work.weixin.qq.com/wwopen/sso/qrConnect',
 };
 
 /**

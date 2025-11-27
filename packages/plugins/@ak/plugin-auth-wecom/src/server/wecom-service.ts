@@ -28,6 +28,7 @@ export class WeComService {
   /**
    * Generate WeCom OAuth authorization URL
    * Creates the URL that users will be redirected to for authentication
+   * Uses PC QR code login flow for better user experience
    *
    * @param redirectUri - The callback URL after authorization
    * @param state - State parameter for CSRF protection
@@ -38,14 +39,12 @@ export class WeComService {
   getAuthorizationUrl(redirectUri: string, state: string): string {
     const params = new URLSearchParams({
       appid: this.config.corpId,
-      redirect_uri: redirectUri,
-      response_type: 'code',
-      scope: 'snsapi_base',
-      state: state,
       agentid: this.config.agentId,
+      redirect_uri: redirectUri,
+      state: state,
     });
 
-    return `${WECOM_API.OAUTH_AUTHORIZE}?${params.toString()}#wechat_redirect`;
+    return `${WECOM_API.OAUTH_AUTHORIZE}?${params.toString()}`;
   }
 
   /**

@@ -44,5 +44,8 @@
   "IP address is not in whitelist": "IP address is not in whitelist",
   "Default role": "Default role",
   "Select default role for new users": "Select default role for new users",
-  "Role to assign to newly created users (optional)": "Role to assign to newly created users (optional)"
+  "Role to assign to newly created users (optional)": "Role to assign to newly created users (optional)",
+  "Public Port": "Public Port",
+  "e.g., 7737": "e.g., 7737",
+  "Set this if your application is accessed via a non-standard port (e.g., 7737) but runs behind a reverse proxy on a different port. Leave empty for automatic detection.": "Set this if your application is accessed via a non-standard port (e.g., 7737) but runs behind a reverse proxy on a different port. Leave empty for automatic detection."
 }

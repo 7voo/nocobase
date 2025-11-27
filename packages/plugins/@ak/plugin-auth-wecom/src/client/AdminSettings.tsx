@@ -117,6 +117,21 @@ export const AdminSettings: React.FC = () => {
             'x-component': 'CallbackUrlField',
             default: callbackUrl,
           },
+          publicPort: {
+            type: 'number',
+            title: t('Public Port'),
+            'x-decorator': 'FormItem',
+            'x-component': 'InputNumber',
+            'x-component-props': {
+              placeholder: t('e.g., 7737'),
+              min: 1,
+              max: 65535,
+              style: { width: '100%' },
+            },
+            description: t(
+              'Set this if your application is accessed via a non-standard port (e.g., 7737) but runs behind a reverse proxy on a different port. Leave empty for automatic detection.',
+            ),
+          },
           public: {
             type: 'object',
             properties: {

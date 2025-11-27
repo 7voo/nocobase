@@ -161,19 +161,86 @@ export async function getAuthUrl(ctx: Context, next: Next) {
 
     // Convert relative callback URL to absolute URL
     let callbackUrl = options.callbackUrl;
+
+    // Log original callback URL from config
+    ctx.logger.info('Original callback URL from config', {
+      action: 'getAuthUrl',
+      originalCallbackUrl: callbackUrl,
+    });
+
     if (callbackUrl && !callbackUrl.startsWith('http://') && !callbackUrl.startsWith('https://')) {
       // Build absolute URL from request
-      const protocol = ctx.protocol;
-      const host = ctx.get('host');
+      // Prefer X-Forwarded-* headers if behind a proxy
+      const xForwardedProto = ctx.get('x-forwarded-proto');
+      const xForwardedHost = ctx.get('x-forwarded-host');
+      const xForwardedPort = ctx.get('x-forwarded-port');
+
+      const protocol = xForwardedProto || ctx.protocol;
+      let host = xForwardedHost || ctx.get('host');
+
+      // Remove port from host if it exists (we'll add it back if needed)
+      host = host.split(':')[0];
+
+      // Determine the port to use
+      let port: string | undefined;
+
+      // Priority 1: Use publicPort from config if set
+      if (options.publicPort) {
+        port = String(options.publicPort);
+      }
+      // Priority 2: Use X-Forwarded-Port if available
+      else if (xForwardedPort) {
+        port = xForwardedPort;
+      }
+      // Priority 3: Extract from original host header if it contains port
+      else {
+        const originalHost = ctx.get('host');
+        const portMatch = originalHost.match(/:(\d+)$/);
+        if (portMatch) {
+          port = portMatch[1];
+        }
+      }
+
+      // Add port to host if it's not a standard port
+      if (port) {
+        const isStandardPort = (protocol === 'http' && port === '80') || (protocol === 'https' && port === '443');
+
+        if (!isStandardPort) {
+          host = `${host}:${port}`;
+        }
+      }
+
+      // Log request details
+      ctx.logger.info('Request details for URL construction', {
+        action: 'getAuthUrl',
+        protocol,
+        host,
+        publicPort: options.publicPort,
+        xForwardedProto,
+        xForwardedHost,
+        xForwardedPort,
+        originalHost: ctx.get('host'),
+        originalProtocol: ctx.protocol,
+      });
+
       callbackUrl = `${protocol}://${host}${callbackUrl.startsWith('/') ? '' : '/'}${callbackUrl}`;
     }
+
+    // Log final callback URL
+    ctx.logger.info('Final callback URL', {
+      action: 'getAuthUrl',
+      finalCallbackUrl: callbackUrl,
+    });
 
     // Get the authorization URL (Requirement 2.2)
     const authUrl = (wecomAuth as any).wecomService.getAuthorizationUrl(callbackUrl, state);
 
+    // Log complete authorization URL
     ctx.logger.info('Generated WeCom auth URL', {
       action: 'getAuthUrl',
       authenticator: authenticatorName,
+      authUrl,
+      state,
     });
 
     ctx.body = {

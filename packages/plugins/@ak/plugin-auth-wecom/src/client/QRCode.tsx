@@ -7,8 +7,8 @@
  * For more information, please refer to: https://www.nocobase.com/agreement.
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { QRCode as AntQRCode, Button, Space, Typography, Spin, Alert } from 'antd';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { Button, Space, Typography, Spin, Alert } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import { useAPIClient } from '@nocobase/client';
 import { useTranslation } from 'react-i18next';
@@ -53,6 +53,7 @@ export const QRCode: React.FC<QRCodeProps> = ({
 }) => {
   const { t } = useTranslation();
   const api = useAPIClient();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const [authUrl, setAuthUrl] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
@@ -154,48 +155,37 @@ export const QRCode: React.FC<QRCodeProps> = ({
   }
 
   /**
-   * Render QR code with expiration overlay
+   * Render official WeCom QR code iframe
+   * Uses WeCom's official QR code UI with built-in expiration handling
    */
   return (
     <div style={{ textAlign: 'center', padding: '20px 0' }}>
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-        <Text type="secondary">{t('Scan QR code with WeCom')}</Text>
-
-        <div style={{ position: 'relative', display: 'inline-block' }}>
-          <AntQRCode value={authUrl} size={200} status={expired ? 'expired' : 'active'} />
-
-          {expired && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                cursor: 'pointer',
-              }}
-              onClick={handleRefresh}
-            >
-              <Space direction="vertical" align="center">
-                <ReloadOutlined style={{ fontSize: 32, color: '#1890ff' }} />
-                <Text type="secondary">{t('QR code expired')}</Text>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  {t('Click to refresh')}
-                </Text>
-              </Space>
-            </div>
-          )}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            flexDirection: 'column',
+          }}
+        >
+          <iframe
+            ref={iframeRef}
+            src={authUrl}
+            width="350"
+            height="400"
+            style={{
+              border: 'none',
+              borderRadius: '8px',
+            }}
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+            title={t('WeCom QR Code')}
+          />
         </div>
 
-        {!expired && (
-          <Button type="link" icon={<ReloadOutlined />} onClick={handleRefresh}>
-            {t('Refresh')}
-          </Button>
-        )}
+        <Button type="link" icon={<ReloadOutlined />} onClick={handleRefresh} size="small">
+          {t('Refresh')}
+        </Button>
       </Space>
     </div>
   );
