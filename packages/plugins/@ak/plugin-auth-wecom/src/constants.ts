@@ -21,6 +21,20 @@ export const authType = 'WeCom';
 export const namespace = name;
 
 /**
+ * Login type enum
+ */
+export enum LoginType {
+  /**
+   * PC QR code login
+   */
+  QRCODE = 'qrcode',
+  /**
+   * OAuth2.0 login (for WeCom mobile client)
+   */
+  OAUTH = 'oauth',
+}
+
+/**
  * WeCom API endpoints
  */
 export const WECOM_API = {
@@ -33,9 +47,9 @@ export const WECOM_API = {
    */
   GET_TOKEN: '/cgi-bin/gettoken',
   /**
-   * Get user info endpoint
+   * Get user info endpoint (used after OAuth2.0 authorization)
    */
-  GET_USER_INFO: '/cgi-bin/user/getuserinfo',
+  GET_USER_INFO: '/cgi-bin/auth/getuserinfo',
   /**
    * Get user detail endpoint
    */
@@ -43,7 +57,25 @@ export const WECOM_API = {
   /**
    * OAuth authorization endpoint for PC QR code login
    */
-  OAUTH_AUTHORIZE: 'https://open.work.weixin.qq.com/wwopen/sso/qrConnect',
+  QRCODE_AUTHORIZE: 'https://open.work.weixin.qq.com/wwopen/sso/qrConnect',
+  /**
+   * OAuth2.0 authorization endpoint for mobile client login
+   */
+  OAUTH2_AUTHORIZE: 'https://open.weixin.qq.com/connect/oauth2/authorize',
+};
+
+/**
+ * OAuth2.0 scope types
+ */
+export const OAUTH_SCOPE = {
+  /**
+   * Base scope - get basic user info (UserId)
+   */
+  BASE: 'snsapi_base',
+  /**
+   * Private info scope - get detailed user info (requires user confirmation)
+   */
+  PRIVATE_INFO: 'snsapi_privateinfo',
 };
 
 /**

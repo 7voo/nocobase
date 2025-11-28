@@ -202,13 +202,17 @@ export async function callback(ctx: Context, next: Next) {
 /**
  * Get WeCom authorization URL
  * Generates the OAuth URL with state parameter for CSRF protection
+ * Supports two login types: qrcode (PC) and oauth (mobile)
  *
- * Requirements: 2.2, 4.1, 4.2, 5.1
+ * Requirements: 2.2, 4.1, 4.2, 5.1, 8.2, 8.4
  */
 export async function getAuthUrl(ctx: Context, next: Next) {
   try {
     // Get the authenticator name from params or use default
     const authenticatorName = ctx.action.params.values?.authenticator || 'wecom';
+
+    // Get the login type from params (qrcode or oauth), default to qrcode
+    const loginType = ctx.action.params.values?.loginType || 'qrcode';
 
     // Get the authenticator instance
     const authenticatorRepo = ctx.db.getRepository('authenticators');
@@ -289,19 +293,21 @@ export async function getAuthUrl(ctx: Context, next: Next) {
       callbackUrl = `${protocol}://${host}${callbackUrl.startsWith('/') ? '' : '/'}${callbackUrl}`;
     }
 
-    // Get the authorization URL (Requirement 2.2)
-    const authUrl = (wecomAuth as any).wecomService.getAuthorizationUrl(callbackUrl, state);
+    // Get the authorization URL with login type (Requirements 2.2, 8.2)
+    const authUrl = (wecomAuth as any).wecomService.getAuthorizationUrl(callbackUrl, state, loginType);
 
     // Log complete authorization URL
     ctx.logger.info('Generated WeCom auth URL', {
       action: 'getAuthUrl',
       authenticator: authenticatorName,
+      loginType,
     });
 
     ctx.body = {
       data: {
         authUrl,
         state,
+        loginType,
       },
     };
 

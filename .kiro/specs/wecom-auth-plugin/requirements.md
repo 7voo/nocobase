@@ -2,7 +2,11 @@
 
 ## 简介
 
-本插件为 NocoBase 提供企业微信扫码登录功能。用户可以通过企业微信移动应用扫描二维码来登录 NocoBase 系统，无需输入用户名和密码。这是一个 MVP 版本，专注于核心的扫码登录流程。
+本插件为 NocoBase 提供企业微信认证功能，支持两种登录方式：
+1. **PC 扫码登录**：用户在电脑浏览器上通过企业微信移动应用扫描二维码登录
+2. **企业微信内一键登录**：用户在企业微信内打开应用，点击按钮直接登录（OAuth2.0）
+
+这是一个 MVP 版本，专注于核心的认证流程。
 
 ## 术语表
 
@@ -102,3 +106,27 @@
 3. WHEN 插件禁用 THEN THE System SHALL 停止提供企业微信登录功能但保留配置数据
 4. WHEN 插件卸载 THEN THE System SHALL 清理注册的认证类型
 5. WHEN 插件更新 THEN THE System SHALL 保持现有配置和用户绑定数据不变
+
+### 需求 8：企业微信内 OAuth2.0 登录
+
+**用户故事：** 作为在企业微信内使用应用的用户，我希望能够点击按钮直接登录，而不需要扫描二维码，以便更便捷地访问系统。
+
+#### 验收标准
+
+1. WHEN 用户在企业微信客户端内访问登录页面 THEN THE System SHALL 检测企业微信环境并显示一键登录按钮
+2. WHEN 用户点击一键登录按钮 THEN THE System SHALL 构造 OAuth2.0 授权链接并重定向到企业微信授权页面
+3. WHEN 用户在企业微信内确认授权 THEN THE System SHALL 接收授权码并完成 OAuth 流程
+4. WHEN OAuth 流程完成 THEN THE System SHALL 获取用户信息并创建登录会话
+5. WHEN 用户在非企业微信环境访问 THEN THE System SHALL 显示二维码扫码登录选项
+
+### 需求 9：登录方式自动检测
+
+**用户故事：** 作为用户，我希望系统能够自动识别我的访问环境，并提供最合适的登录方式，以便获得最佳的用户体验。
+
+#### 验收标准
+
+1. WHEN 系统加载登录页面 THEN THE System SHALL 检测用户代理字符串判断是否在企业微信环境
+2. WHEN 检测到企业微信环境 THEN THE System SHALL 优先显示一键登录按钮
+3. WHEN 检测到非企业微信环境 THEN THE System SHALL 显示二维码扫码登录
+4. WHEN 用户在企业微信内点击一键登录 THEN THE System SHALL 使用 OAuth2.0 授权流程
+5. WHEN 用户在 PC 浏览器点击登录 THEN THE System SHALL 显示二维码供扫描

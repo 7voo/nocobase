@@ -8,8 +8,8 @@
  */
 
 import axios, { AxiosError } from 'axios';
-import { WeComConfig, WeComUserInfo, WeComAccessTokenResponse, WeComUserInfoResponse } from '../types';
-import { WECOM_API, RETRY_CONFIG, API_TIMEOUT } from '../constants';
+import { WeComConfig, WeComUserInfo, WeComAccessTokenResponse, WeComUserInfoResponse, WeComLoginType } from '../types';
+import { WECOM_API, RETRY_CONFIG, API_TIMEOUT, LoginType, OAUTH_SCOPE } from '../constants';
 
 /**
  * WeCom API service class
@@ -30,24 +30,44 @@ export class WeComService {
   /**
    * Generate WeCom OAuth authorization URL
    * Creates the URL that users will be redirected to for authentication
-   * Uses PC QR code login flow for better user experience
+   * Supports two login types:
+   * - qrcode: PC QR code login (default)
+   * - oauth: OAuth2.0 login for WeCom mobile client
    *
    * @param redirectUri - The callback URL after authorization
    * @param state - State parameter for CSRF protection
+   * @param loginType - Login type (qrcode or oauth), defaults to qrcode
    * @returns The complete authorization URL
    *
-   * Requirement 6.1: Generate OAuth authorization URL
+   * Requirements: 6.1, 8.2
    */
-  getAuthorizationUrl(redirectUri: string, state: string): string {
-    const params = new URLSearchParams({
-      appid: this.config.corpId,
-      agentid: this.config.agentId,
-      redirect_uri: redirectUri,
-      state: state,
-      self_redirect: 'false', // Use postMessage instead of direct redirect to avoid iframe cross-origin issues
-    });
+  getAuthorizationUrl(redirectUri: string, state: string, loginType: WeComLoginType = LoginType.QRCODE): string {
+    if (loginType === LoginType.OAUTH) {
+      // OAuth2.0 authorization for mobile client
+      // Reference: https://developer.work.weixin.qq.com/document/path/91022
+      const params = new URLSearchParams({
+        appid: this.config.corpId,
+        redirect_uri: redirectUri,
+        response_type: 'code',
+        scope: OAUTH_SCOPE.BASE, // Use base scope for MVP (only get UserId)
+        state: state,
+        agentid: this.config.agentId,
+      });
 
-    return `${WECOM_API.OAUTH_AUTHORIZE}?${params.toString()}`;
+      // Add #wechat_redirect to indicate this is for WeCom client
+      return `${WECOM_API.OAUTH2_AUTHORIZE}?${params.toString()}#wechat_redirect`;
+    } else {
+      // PC QR code login (existing implementation)
+      const params = new URLSearchParams({
+        appid: this.config.corpId,
+        agentid: this.config.agentId,
+        redirect_uri: redirectUri,
+        state: state,
+        self_redirect: 'false', // Use postMessage instead of direct redirect to avoid iframe cross-origin issues
+      });
+
+      return `${WECOM_API.QRCODE_AUTHORIZE}?${params.toString()}`;
+    }
   }
 
   /**

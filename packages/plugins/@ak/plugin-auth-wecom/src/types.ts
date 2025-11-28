@@ -202,3 +202,8 @@ export interface UserWeComBinding {
    */
   wecomUnionId?: string;
 }
+
+/**
+ * Login type for WeCom authentication
+ */
+export type WeComLoginType = 'qrcode' | 'oauth';

@@ -48,5 +48,10 @@
   "Public Port": "Public Port",
   "e.g., 7737": "e.g., 7737",
   "Set this if your application is accessed via a non-standard port (e.g., 7737) but runs behind a reverse proxy on a different port. Leave empty for automatic detection.": "Set this if your application is accessed via a non-standard port (e.g., 7737) but runs behind a reverse proxy on a different port. Leave empty for automatic detection.",
-  "This URL is automatically generated. Copy it to your WeCom application settings.": "This URL is automatically generated. Copy it to your WeCom application settings."
+  "This URL is automatically generated. Copy it to your WeCom application settings.": "This URL is automatically generated. Copy it to your WeCom application settings.",
+  "Sign in with WeCom (One-Click)": "Sign in with WeCom (One-Click)",
+  "Failed to get authorization URL": "Failed to get authorization URL",
+  "Detecting environment...": "Detecting environment...",
+  "One-click login in WeCom": "One-click login in WeCom",
+  "Scan QR code on PC": "Scan QR code on PC"
 }

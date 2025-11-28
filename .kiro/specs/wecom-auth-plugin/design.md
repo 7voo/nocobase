@@ -2,12 +2,14 @@
 
 ## 概述
 
-企业微信认证插件为 NocoBase 提供基于 OAuth 2.0 的企业微信扫码登录功能。该插件遵循 NocoBase 的认证插件架构，通过扩展 `@nocobase/auth` 插件来实现企业微信身份验证。
+企业微信认证插件为 NocoBase 提供基于 OAuth 2.0 的企业微信认证功能。该插件遵循 NocoBase 的认证插件架构，通过扩展 `@nocobase/auth` 插件来实现企业微信身份验证。
 
 ### 核心功能
 
-- 企业微信 OAuth 2.0 认证流程
-- 二维码扫码登录
+- 企业微信 OAuth 2.0 认证流程（支持两种模式）
+  - PC 扫码登录（使用 QR Code）
+  - 企业微信内一键登录（OAuth2.0 授权）
+- 自动环境检测（企业微信内 vs PC 浏览器）
 - 自动用户注册
 - 用户账号与企业微信身份绑定
 - 管理员配置界面
@@ -46,10 +48,12 @@
 
 ### 认证流程
 
+#### 流程 1: PC 扫码登录（已实现）
+
 ```mermaid
 sequenceDiagram
     participant U as 用户
-    participant B as 浏览器
+    participant B as PC浏览器
     participant N as NocoBase
     participant W as 企业微信
 
@@ -57,8 +61,8 @@ sequenceDiagram
     B->>N: 请求授权 URL
     N->>N: 生成 state (CSRF)
     N->>B: 返回授权 URL + 二维码
-    B->>W: 重定向到企业微信
-    U->>W: 扫码并确认
+    B->>W: 显示二维码
+    U->>W: 用手机扫码并确认
     W->>N: 回调 (code + state)
     N->>N: 验证 state
     N->>W: 获取 access token
@@ -68,6 +72,36 @@ sequenceDiagram
     N->>N: 创建/查找用户
     N->>B: 返回 JWT token
     B->>U: 登录成功
+```
+
+#### 流程 2: 企业微信内一键登录（新增）
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant W as 企业微信客户端
+    participant N as NocoBase
+    participant API as 企业微信API
+
+    U->>W: 在企业微信内打开应用
+    W->>N: 访问登录页面
+    N->>N: 检测企业微信环境
+    N->>W: 显示一键登录按钮
+    U->>W: 点击一键登录
+    W->>N: 请求 OAuth2.0 授权 URL
+    N->>N: 生成 state (CSRF)
+    N->>W: 返回授权 URL
+    W->>API: 重定向到授权页面
+    U->>API: 确认授权
+    API->>N: 回调 (code + state)
+    N->>N: 验证 state
+    N->>API: 获取 access token
+    API->>N: 返回 access token
+    N->>API: 获取用户信息
+    API->>N: 返回用户信息
+    N->>N: 创建/查找用户
+    N->>W: 返回 JWT token
+    W->>U: 登录成功
 ```
 
 ## 组件和接口
@@ -98,14 +132,14 @@ class WeComAuth extends BaseAuth {
 
 ```typescript
 class WeComService {
-  getAuthorizationUrl(redirectUri: string, state: string): string
+  getAuthorizationUrl(redirectUri: string, state: string, loginType?: 'qrcode' | 'oauth'): string
   async getAccessToken(): Promise<string>
   async getUserInfo(code: string): Promise<WeComUserInfo>
 }
 ```
 
 **职责**:
-- 生成 OAuth 授权 URL
+- 生成 OAuth 授权 URL（支持两种模式：PC 扫码和移动端 OAuth）
 - 获取企业微信 access token
 - 调用企业微信用户信息接口
 - 实现重试机制和错误处理
@@ -129,16 +163,23 @@ async function getAuthUrl(ctx: Context, next: Next): Promise<void>
 
 #### 1. SignInButton (登录按钮)
 
-显示企业微信登录按钮，点击后显示二维码。
+显示企业微信登录按钮，根据环境自动选择登录方式。
 
 ```typescript
 const SignInButton: React.FC<{
   authenticator: string
 }> = ({ authenticator }) => {
-  // 获取授权 URL
-  // 显示二维码或重定向
+  // 检测是否在企业微信环境
+  // 企业微信内：显示一键登录按钮，点击后重定向到 OAuth 授权
+  // PC 浏览器：显示二维码扫码登录
 }
 ```
+
+**职责**:
+- 检测用户访问环境（企业微信 vs PC 浏览器）
+- 在企业微信内显示一键登录按钮
+- 在 PC 浏览器显示二维码
+- 处理不同登录流程
 
 #### 2. AdminSettings (配置表单)
 
@@ -162,8 +203,14 @@ const AdminSettings: React.FC<{
 
 | 端点 | 方法 | 权限 | 说明 |
 |------|------|------|------|
-| `/api/wecom:getAuthUrl` | POST | public | 获取授权 URL |
+| `/api/wecom:getAuthUrl` | POST | public | 获取授权 URL（支持 loginType 参数：qrcode/oauth） |
 | `/api/wecom:callback` | GET | public | OAuth 回调处理 |
+
+**getAuthUrl 参数**:
+- `authenticator`: 认证器名称（必需）
+- `loginType`: 登录类型，可选值：
+  - `qrcode`: PC 扫码登录（默认）
+  - `oauth`: 企业微信内 OAuth2.0 登录
 
 ## 数据模型
 
@@ -255,6 +302,22 @@ interface WeComOptions {
 ### 属性 14: 响应格式验证
 *对于任意*企业微信 API 成功响应，系统应该能够验证响应格式并提取必要字段
 **验证需求: 6.4**
+
+### 属性 15: 环境检测准确性
+*对于任意*用户代理字符串，系统应该能够准确判断是否在企业微信环境中
+**验证需求: 9.1**
+
+### 属性 16: 登录方式与环境一致性
+*对于任意*检测到的环境，显示的登录方式应该与环境匹配（企业微信内显示一键登录，PC 显示二维码）
+**验证需求: 9.2, 9.3**
+
+### 属性 17: OAuth2.0 授权流程完整性
+*对于任意*在企业微信内发起的登录请求，应该使用 OAuth2.0 授权流程并成功获取用户信息
+**验证需求: 8.2, 8.3, 8.4**
+
+### 属性 18: 授权 URL 类型正确性
+*对于任意*登录类型参数（qrcode/oauth），生成的授权 URL 应该使用对应的企业微信端点
+**验证需求: 8.2**
 
 ## 错误处理
 
